@@ -70,7 +70,13 @@ __attribute__((annotate("returns_localized_nsstring"))) static inline NSString *
         }
     }
     NSUserActivity *activity = [self wmf_pageActivityWithName:@"Places"];
-    activity.webpageURL = articleURL;
+    
+    if (articleURL == nil) {
+        NSString *urlString = [activityURL.absoluteString stringByReplacingOccurrencesOfString:@"wikipedia://" withString:@"https://"];
+        activity.webpageURL = [[NSURL alloc] initWithString:urlString];
+    } else {
+        activity.webpageURL = articleURL;
+    }
     return activity;
 }
 

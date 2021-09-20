@@ -1950,8 +1950,27 @@ class PlacesViewController: ViewController, UISearchBarDelegate, ArticlePopoverV
         recenterOnUserLocation(self)
     }
     
-    @objc public func showArticleURL(_ articleURL: URL) {
-        guard let article = dataStore.fetchArticle(with: articleURL), let title = articleURL.wmf_title,
+    @objc public func showURL(_ url: URL) {
+        let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: true)
+        
+        let longitudeString = urlComponents?.queryItems?.first {
+            $0.name == "longitude"
+        }?.value
+        
+        let latitudeString = urlComponents?.queryItems?.first {
+            $0.name == "latitude"
+        }?.value
+        
+        if
+            let longitudeString = longitudeString,
+            let latitudeString = latitudeString,
+            let latitudeDouble = Double(latitudeString),
+            let longitudeDouble = Double(longitudeString) {
+            goToLocation(CLLocationCoordinate2D(latitude: latitudeDouble, longitude: longitudeDouble))
+            return
+        }
+
+        guard let article = dataStore.fetchArticle(with: url), let title = url.wmf_title,
             let _ = view else { // force view instantiation
             return
         }
@@ -1959,7 +1978,14 @@ class PlacesViewController: ViewController, UISearchBarDelegate, ArticlePopoverV
         let displayTitleHTML = article.displayTitleHTML
         let displayTitle = article.displayTitle ?? title
         let searchResult = MWKSearchResult(articleID: 0, revID: 0, title: title, displayTitle: displayTitle, displayTitleHTML: displayTitleHTML, wikidataDescription: article.wikidataDescription, extract: article.snippet, thumbnailURL: article.thumbnailURL, index: nil, titleNamespace: nil, location: article.location)
-        currentSearch = PlaceSearch(filter: .top, type: .location, origin: .user, sortStyle: .links, string: nil, region: region, localizedDescription: title, searchResult: searchResult, siteURL: articleURL.wmf_site)
+        currentSearch = PlaceSearch(filter: .top, type: .location, origin: .user, sortStyle: .links, string: nil, region: region, localizedDescription: title, searchResult: searchResult, siteURL: url.wmf_site)
+    }
+    
+    private func goToLocation(_ location: CLLocationCoordinate2D) {
+        let distance = CLLocationDistance(500_000)
+        
+        let region = MKCoordinateRegion(center: location, latitudinalMeters: distance, longitudinalMeters: distance)
+        mapView.setRegion(region, animated: true)
     }
     
     fileprivate func searchForFirstSearchSuggestion() {
